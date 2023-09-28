@@ -60,7 +60,7 @@ if(DEFINED ENV{BLUEPAD32_ARDUINO})
     list(APPEND requires "arduino")
 endif()
 
-idf_component_register(SRCS "${srcs}"
+idf_component_register(SRCS "uni_property_mem.c" "${srcs}"
                     INCLUDE_DIRS "include"
                     REQUIRES ${requires})
 

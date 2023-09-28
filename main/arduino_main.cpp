@@ -25,6 +25,7 @@ limitations under the License.
 #include <ESP32Servo.h>
 #include <ESP32SharpIR.h>
 #include <QTRSensors.h>
+#define LED 2
 
 //
 // README FIRST, README FIRST, README FIRST
@@ -87,6 +88,7 @@ QTRSensors qtr;
 
 // Arduino setup function. Runs in CPU 1
 void setup() {
+    Serial.begin(115200);
     // Console.printf("Firmware: %s\n", BP32.firmwareVersion());
 
     // Setup the Bluepad32 callbacks
@@ -118,6 +120,9 @@ void setup() {
     //     delay(20);
     // }
     // qtr.calibrate();
+
+    //coding blinky LED
+    pinMode(LED, OUTPUT);
 }
 
 // Arduino loop function. Runs in CPU 1
@@ -178,4 +183,12 @@ void loop() {
     // }
     vTaskDelay(1);
     // delay(100);
+
+    //blinker code
+    digitalWrite(LED, HIGH);
+    Serial.println("LED is on");
+    delay(50);
+    digitalWrite(LED, LOW);
+    Serial.println("LED is off");
+    delay(50);
 }
