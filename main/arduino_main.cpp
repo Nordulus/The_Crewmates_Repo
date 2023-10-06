@@ -21,13 +21,23 @@ limitations under the License.
 
 #include <Arduino.h>
 #include <Bluepad32.h>
-
 #include <ESP32Servo.h>
 #include <ESP32SharpIR.h>
 #include <QTRSensors.h>
+
 #define LED 2
 #define servoPin1 12
 #define servoPin2 13
+#define NUM_SAMPLES_PER_SENSOR 4 // average 4 analog samples per sensor reading
+#define QTR_NO_EMITTER_PIN // emitter is controlled by digital pin 2
+#define QTRSENSOR1 36
+#define QTRSENSOR2 39
+#define QTRSENSOR3 34
+#define QTRSENSOR4 35
+#define QTRSENSOR5 32
+#define QTRSENSOR6 33
+#define QTRSENSOR7 25
+#define QTRSENSOR8 26
 int pos1 = 0;
 int pos2 = 0;
 
@@ -46,6 +56,13 @@ int pos2 = 0;
 //    CONFIG_BLUEPAD32_USB_CONSOLE_ENABLE=n
 
 GamepadPtr myGamepads[BP32_MAX_GAMEPADS];
+
+Servo servo1;
+Servo servo2;
+ESP32SharpIR sensor1( ESP32SharpIR::GP2Y0A21YK0F, 27);
+QTRSensors qtr;
+const uint8_t SensorCount = 8;
+uint16_t sensorValues[SensorCount];
 
 // This callback gets called any time a new gamepad is connected.
 // Up to 4 gamepads can be connected at the same time.
@@ -86,14 +103,85 @@ void onDisconnectedGamepad(GamepadPtr gp) {
     }
 }
 
-Servo servo1;
-Servo servo2;
-ESP32SharpIR sensor1( ESP32SharpIR::GP2Y0A21YK0F, 27);
-QTRSensors qtr;
+void forward(int time = 1000, int lr = 3){
+    // servo runs at full speed for set time param
+    if (lr == 1){
+        servo1.write(180);
+        delay(time);
+    }
+
+    if (lr == 2){
+        servo2.write(180);
+        delay(time);
+    }
+
+    if (lr == 3){
+        servo1.write(180);
+        servo2.write(180);
+        delay(time);
+    }
+
+
+}
+
+void calibrateQTR(){
+
+        // Calibrate sensor
+    Serial.print("Calibration mode begin");
+    pinMode(LED, OUTPUT);
+    digitalWrite(LED, HIGH); //LED blue to indicate calibration mode
+    for (uint16_t i = 0; i < 400; i++){
+        qtr.calibrate();
+    }
+    Serial.println();
+    // print the calibration minimum values measured when emitters were on
+    Serial.print("printing minimum values:");
+    for (uint8_t i = 0; i < SensorCount; i++)
+        {
+    Serial.print(qtr.calibrationOn.minimum[i]);
+    Serial.print(' ');
+        }
+    Serial.println();
+    digitalWrite(LED, LOW);
+
+    // print max calibration values
+    Serial.print("printing max values");
+    for (uint8_t i = 0; i < SensorCount; i++)
+        {
+    Serial.print(qtr.calibrationOn.maximum[i]);
+    Serial.print(' ');
+        }
+    Serial.println();
+    Serial.println();
+    delay(1000);
+
+}
+
+void readandprintQTR(){
+    uint16_t position = qtr.readLineBlack(sensorValues);
+    for (uint8_t i = 0; i < SensorCount; i++){
+        Serial.print(sensorValues[i]);
+        Serial.print('\t');
+    }
+    Serial.println();
+    delay(250);
+}
+
+void blinkLED(){
+    // blinker code
+    digitalWrite(LED, HIGH);
+    Serial.println("LED is on");
+    delay(50);
+    digitalWrite(LED, LOW);
+    Serial.println("LED is off");
+    delay(50);
+}
 
 // Arduino setup function. Runs in CPU 1
 void setup() {
+    delay(500);
     Serial.begin(115200);
+    Serial.print("Serial monitor check");
     // Console.printf("Firmware: %s\n", BP32.firmwareVersion());
 
     // Setup the Bluepad32 callbacks
@@ -106,37 +194,32 @@ void setup() {
     // But might also fix some connection / re-connection issues.
     BP32.forgetBluetoothKeys();
 
+    // motor setup
+        // turn on all allocation timers
     ESP32PWM::allocateTimer(0);
 	ESP32PWM::allocateTimer(1);
 	ESP32PWM::allocateTimer(2);
 	ESP32PWM::allocateTimer(3);
     servo1.setPeriodHertz(50);
     servo1.attach(servoPin1, 1000, 2000);
+    servo1.write(90);
     servo2.setPeriodHertz(50);
     servo2.attach(servoPin2, 1000, 2000);
+    servo2.write(90);
+    //servos are stationary
+    
 
-    // Serial.begin(115200);
-    // sensor1.setFilterRate(0.1f);
+    // QTR SENSOR
+    qtr.setTypeAnalog();
+    qtr.setSensorPins((const uint8_t[]){QTRSENSOR1, QTRSENSOR2, QTRSENSOR3, QTRSENSOR4, QTRSENSOR5, QTRSENSOR6, QTRSENSOR7, QTRSENSOR8}, SensorCount);
+    calibrateQTR();
 
-    // qtr.setTypeRC(); // or setTypeAnalog()
-    // qtr.setSensorPins((const uint8_t[]) {12,13,14}, 3);
-    // for (uint8_t i = 0; i < 250; i++)
-    // {
-    //     Serial.println("calibrating");
-    //     qtr.calibrate();
-    //     delay(20);
-    // }
-    // qtr.calibrate();
 
-    //coding blinky LED
+    // onboard LED
     pinMode(LED, OUTPUT);
 }
 
-void forward(){
-
-}
-
-// Arduino loop function. Runs in CPU 1
+// ESP32 loop function. Runs in CPU 1
 void loop() {
     // This call fetches all the gamepad info from the NINA (ESP32) module.
     // Just call this function in your main loop.
@@ -194,15 +277,10 @@ void loop() {
     vTaskDelay(1);
     // delay(100);
 
-    //blinker code
-    // digitalWrite(LED, HIGH);
-    // Serial.println("LED is on");
-    // delay(50);
-    // digitalWrite(LED, LOW);
-    // Serial.println("LED is off");
-    // delay(50);
 
+    readandprintQTR();
     // servo motor code:
 
 
 }
+
