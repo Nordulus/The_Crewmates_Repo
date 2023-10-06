@@ -8,6 +8,6 @@ if(DEFINED ENV{BLUEPAD32_ARDUINO})
     list(APPEND requires "bluepad32_arduino" "arduino")
 endif()
 
-idf_component_register(SRCS "QTR_Controller.cpp" "${srcs}"
+idf_component_register(SRCS "motor_controller.cpp" "QTR_Controller.cpp" "${srcs}"
                     INCLUDE_DIRS "."
                     REQUIRES "${requires}")

@@ -26,6 +26,10 @@ limitations under the License.
 #include <ESP32SharpIR.h>
 #include <QTRSensors.h>
 #define LED 2
+#define servoPin1 12
+#define servoPin2 13
+int pos1 = 0;
+int pos2 = 0;
 
 //
 // README FIRST, README FIRST, README FIRST
@@ -82,7 +86,8 @@ void onDisconnectedGamepad(GamepadPtr gp) {
     }
 }
 
-Servo servo;
+Servo servo1;
+Servo servo2;
 ESP32SharpIR sensor1( ESP32SharpIR::GP2Y0A21YK0F, 27);
 QTRSensors qtr;
 
@@ -105,8 +110,10 @@ void setup() {
 	ESP32PWM::allocateTimer(1);
 	ESP32PWM::allocateTimer(2);
 	ESP32PWM::allocateTimer(3);
-    servo.setPeriodHertz(50);
-    servo.attach(12, 1000, 2000);
+    servo1.setPeriodHertz(50);
+    servo1.attach(servoPin1, 1000, 2000);
+    servo2.setPeriodHertz(50);
+    servo2.attach(servoPin2, 1000, 2000);
 
     // Serial.begin(115200);
     // sensor1.setFilterRate(0.1f);
@@ -125,6 +132,10 @@ void setup() {
     pinMode(LED, OUTPUT);
 }
 
+void forward(){
+
+}
+
 // Arduino loop function. Runs in CPU 1
 void loop() {
     // This call fetches all the gamepad info from the NINA (ESP32) module.
@@ -132,7 +143,6 @@ void loop() {
     // The gamepads pointer (the ones received in the callbacks) gets updated
     // automatically.
     BP32.update();
-
     // It is safe to always do this before using the gamepad API.
     // This guarantees that the gamepad is valid and connected.
     for (int i = 0; i < BP32_MAX_GAMEPADS; i++) {
@@ -140,8 +150,8 @@ void loop() {
 
         if (myGamepad && myGamepad->isConnected()) {
 
-            servo.write( ((((float) myGamepad->axisY()) / 512.0f) * 500) + 1500 );
-
+            servo1.write( ((((float) myGamepad->axisY()) / 512.0f) * 500) + 1500 );
+            servo2.write( ((((float) myGamepad->axisY()) / 512.0f) * 500) + 1500 );
             // Another way to query the buttons, is by calling buttons(), or
             // miscButtons() which return a bitmask.
             // Some gamepads also have DPAD, axis and more.
@@ -185,10 +195,14 @@ void loop() {
     // delay(100);
 
     //blinker code
-    digitalWrite(LED, HIGH);
-    Serial.println("LED is on");
-    delay(50);
-    digitalWrite(LED, LOW);
-    Serial.println("LED is off");
-    delay(50);
+    // digitalWrite(LED, HIGH);
+    // Serial.println("LED is on");
+    // delay(50);
+    // digitalWrite(LED, LOW);
+    // Serial.println("LED is off");
+    // delay(50);
+
+    // servo motor code:
+
+
 }
