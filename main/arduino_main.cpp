@@ -157,14 +157,17 @@ void calibrateQTR(){
 
 }
 
-void readandprintQTR(){
+int readandprintQTR(){
     uint16_t position = qtr.readLineBlack(sensorValues);
+    int sensor_array_values[8];
     for (uint8_t i = 0; i < SensorCount; i++){
         Serial.print(sensorValues[i]);
         Serial.print('\t');
+        sensor_array_values[i] = sensorValues[i];
     }
     Serial.println();
     delay(250);
+    return 0;
 }
 
 void blinkLED(){
