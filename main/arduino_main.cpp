@@ -217,9 +217,15 @@ void setup() {
     qtr.setSensorPins((const uint8_t[]){QTRSENSOR1, QTRSENSOR2, QTRSENSOR3, QTRSENSOR4, QTRSENSOR5, QTRSENSOR6, QTRSENSOR7, QTRSENSOR8}, SensorCount);
     calibrateQTR();
 
-
-    // onboard LED
-    pinMode(LED, OUTPUT);
+    // qtr.setTypeRC(); // or setTypeAnalog()
+    // qtr.setSensorPins((const uint8_t[]) {12,13,14}, 3);
+    // for (uint8_t i = 0; i < 250; i++)
+    // {
+    //     Serial.println("calibrating");
+    //     qtr.calibrate();
+    //     delay(20);
+    // }
+    // qtr.calibrate();
 }
 
 // ESP32 loop function. Runs in CPU 1
@@ -279,11 +285,5 @@ void loop() {
     // }
     vTaskDelay(1);
     // delay(100);
-
-
-    readandprintQTR();
-    // servo motor code:
-
-
 }
 
