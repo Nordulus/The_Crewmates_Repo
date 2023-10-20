@@ -14,6 +14,7 @@
 #define QTRSENSOR8 26
 #define LED 2
 
+//note that I initialize QTRSensors as qtra, rather than qtr.
 QTRSensors qtra;
 
 const uint8_t SensorCount = 8;
