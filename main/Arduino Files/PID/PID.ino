@@ -18,8 +18,6 @@
 #define QTRSENSOR8 26
 #define LED_BUILTIN 2
 
-int pos1 = 0;
-int pos2 = 0;
 const int offsetA = 1;
 const int offsetB = 1;
 
@@ -75,7 +73,16 @@ void onDisconnectedGamepad(GamepadPtr gp) {
   }
 }
 
-
+void printQTR(){
+  uint16_t position = qtr.readLineBlack(sensorValues);
+  for (uint8_t i = 0; i < SensorCount; i++)
+  {
+    Serial.print(sensorValues[i]);
+    Serial.print('\t');
+  }
+  Serial.println();
+  delay(10);
+}
 
 // PID CONTROLLER VARIABLES
 float Kp = 0;
@@ -83,7 +90,7 @@ float Ki = 0;
 float Kd = 0;
 
 uint8_t multiP = 1;
-uint8_t multiI  = 1;
+uint8_t multiI = 1;
 uint8_t multiD = 1;
 uint8_t Kpfinal;
 uint8_t Kifinal;
@@ -91,8 +98,6 @@ uint8_t Kdfinal;
 float Pvalue;
 float Ivalue;
 float Dvalue;
-
-boolean onoff = false;
 
 int val, cnt = 0, v[3];
 
@@ -107,36 +112,15 @@ void calibrateQTR(){
   qtr.setSensorPins((const uint8_t[]){QTRSENSOR1, QTRSENSOR2, QTRSENSOR3, QTRSENSOR4, QTRSENSOR5, QTRSENSOR6, QTRSENSOR7, QTRSENSOR8}, SensorCount);
 
   delay(500);
-  Serial.println("Sensor calibrating. Hold sensor on nonconstrasting floor.");
   pinMode(LED_BUILTIN, OUTPUT);
-  // turn on Arduino's LED to indicate we are in calibration mode
   digitalWrite(LED_BUILTIN, HIGH);
-  // analogRead() takes about 0.1 ms on an AVR.
-  // 0.1 ms per sensor * 4 samples per sensor read (default) * 8 sensors
-  // * 10 reads per calibrate() call = ~24 ms per calibrate() call.
-  // Call calibrate() 400 times to make calibration take about 10 seconds.
+  Serial.println("Calibrating, place sensor over white floor.");
   for (uint16_t i = 0; i < 400; i++){
     qtr.calibrate();
-  }
-  digitalWrite(LED_BUILTIN, LOW); // turn off Arduino's LED to indicate we are through with calibration
-
-  // print the calibration minimum values measured when emitters were on
-  Serial.print("printing minimum values:");
-  for (uint8_t i = 0; i < SensorCount; i++){
-      Serial.print(qtr.calibrationOn.minimum[i]);
-      Serial.print(' ');
-  }
-  Serial.println();
-
-  // print max calibration values
-  Serial.print("printing max values");
-  for (uint8_t i = 0; i < SensorCount; i++){
-      Serial.print(qtr.calibrationOn.maximum[i]);
-      Serial.print(' ');
     }
+  digitalWrite(LED_BUILTIN, LOW);
   Serial.println();
-  Serial.println();
-  delay(1000);
+
 
   //print threshold values
   for (uint8_t i = 0; i < SensorCount; i++){
@@ -145,6 +129,7 @@ void calibrateQTR(){
     Serial.print("  ");
   }
   Serial.println();
+  delay(1000);
 }
 
 void setup(){
@@ -154,29 +139,150 @@ void setup(){
   Serial.begin(115200);
   Serial.print("Serial monitor check");
 
+  //Connect to Gamepad
+  Serial.printf("Firmware: %s\n", BP32.firmwareVersion());
+  const uint8_t *addr = BP32.localBdAddress();
+  Serial.printf("BD Addr: %2X:%2X:%2X:%2X:%2X:%2X\n", addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
+
+  BP32.setup(&onConnectedGamepad, &onDisconnectedGamepad); //setup Bluepad32 Callbacks
+
+
+// motor setup
+        // turn on all allocation timers
+  ESP32PWM::allocateTimer(0);
+	ESP32PWM::allocateTimer(1);
+	ESP32PWM::allocateTimer(2);
+	ESP32PWM::allocateTimer(3);
+  rightServo.setPeriodHertz(50);
+  rightServo.attach(rightServoPin, 1000, 2000);
+  rightServo.write(180); //write 180 to briefly test servos
+  delay(500);
+  rightServo.write(90);
+  leftServo.setPeriodHertz(50);
+  leftServo.attach(leftServoPin, 1000, 2000);
+  leftServo.write(180);
+  delay(500);
+  leftServo.write(90); //servos are left stationary
+
   //CALIBRATION MODE
   calibrateQTR();
+  
 
   delay(1000);
+
+
 }
 
 void loop(){
+  printQTR();
+  // This call fetches all the gamepad info from the NINA (ESP32) module.
+  // Just call this function in your main loop.
+  // The gamepads pointer (the ones received in the callbacks) gets updated
+  // automatically.
+  BP32.update();
 
-  if (onoff == true){
-    robot_control();
+  // It is safe to always do this before using the gamepad API.
+  // This guarantees that the gamepad is valid and connected.
+  for (int i = 0; i < BP32_MAX_GAMEPADS; i++) {
+    GamepadPtr myGamepad = myGamepads[i];
+
+    if (myGamepad && myGamepad->isConnected()) {
+      // There are different ways to query whether a button is pressed.
+      // By query each button individually:
+      //  a(), b(), x(), y(), l1(), etc...
+
+      // write to the servo motors
+      rightServo.write( ((((float) myGamepad->axisY()) / 512.0f) * -500) + 1500 );
+      leftServo.write( ((((float) myGamepad->axisRY()) / 512.0f) * 500) + 1500 );
+      
+      if (myGamepad->a()) {
+        static int colorIdx = 0;
+        // Some gamepads like DS4 and DualSense support changing the color LED.
+        // It is possible to change it by calling:
+        switch (colorIdx % 3) {
+        case 0:
+          // Red
+          myGamepad->setColorLED(255, 0, 0);
+          break;
+        case 1:
+          // Green
+          myGamepad->setColorLED(0, 255, 0);
+          break;
+        case 2:
+          // Blue
+          myGamepad->setColorLED(0, 0, 255);
+          break;
+        }
+        colorIdx++;
+      }
+
+      if (myGamepad->b()) {
+        // Turn on the 4 LED. Each bit represents one LED.
+        static int led = 0;
+        led++;
+        // Some gamepads like the DS3, DualSense, Nintendo Wii, Nintendo Switch
+        // support changing the "Player LEDs": those 4 LEDs that usually
+        // indicate the "gamepad seat". It is possible to change them by
+        // calling:
+        myGamepad->setPlayerLEDs(led & 0x0f);
+      }
+
+      if (myGamepad->x()) {
+        // Duration: 255 is ~2 seconds
+        // force: intensity
+        // Some gamepads like DS3, DS4, DualSense, Switch, Xbox One S support
+        // rumble.
+        // It is possible to set it by calling:
+        myGamepad->setRumble(0xc0 /* force */, 0xc0 /* duration */);
+      }
+
+      // Another way to query the buttons, is by calling buttons(), or
+      // miscButtons() which return a bitmask.
+      // Some gamepads also have DPAD, axis and more.
+      /* Serial.printf(
+          "idx=%d, dpad: 0x%02x, buttons: 0x%04x, axis L: %4d, %4d, axis R: "
+          "%4d, %4d, brake: %4d, throttle: %4d, misc: 0x%02x, gyro x:%6d y:%6d "
+          "z:%6d, accel x:%6d y:%6d z:%6d\n",
+          i,                        // Gamepad Index
+          myGamepad->dpad(),        // DPAD
+          myGamepad->buttons(),     // bitmask of pressed buttons
+          myGamepad->axisX(),       // (-511 - 512) left X Axis
+          myGamepad->axisY(),       // (-511 - 512) left Y axis
+          myGamepad->axisRX(),      // (-511 - 512) right X axis
+          myGamepad->axisRY(),      // (-511 - 512) right Y axis
+          myGamepad->brake(),       // (0 - 1023): brake button
+          myGamepad->throttle(),    // (0 - 1023): throttle (AKA gas) button
+          myGamepad->miscButtons(), // bitmak of pressed "misc" buttons
+          myGamepad->gyroX(),       // Gyro X
+          myGamepad->gyroY(),       // Gyro Y
+          myGamepad->gyroZ(),       // Gyro Z
+          myGamepad->accelX(),      // Accelerometer X
+          myGamepad->accelY(),      // Accelerometer Y
+          myGamepad->accelZ()       // Accelerometer Z
+      ); */
+
+      // You can query the axis and other properties as well. See Gamepad.h
+      // For all the available functions.
+    }
   }
 
-  else if(onoff == false){
-    motor1.stop();
-    motor2.stop();
-  }
+  // The main loop must have some kind of "yield to lower priority task" event.
+  // Otherwise the watchdog will get triggered.
+  // If your main loop doesn't have one, just add a simple `vTaskDelay(1)`.
+  // Detailed info here:
+  // https://stackoverflow.com/questions/66278271/task-watchdog-got-triggered-the-tasks-did-not-reset-the-watchdog-in-time
+
+  // vTaskDelay(1);
+  delay(150);
+
+  // robot_control();
 }
 void robot_control(){
   // read calibrated sensor values and obtain a measure of the line position
   // from 0 to 4000 (for a white line, use readLineWhite() instead)
   uint16_t position = qtr.readLineBlack(sensorValues);
   error = 2000 - position;
-  while(sensorValues[0]>=980 && sensorValues[1]>=980 && sensorValues[2]>=980 && sensorValues[3]>=980 && sensorValues[4]>=980){ // A case when the line follower leaves the line
+  while(sensorValues[0]>=980 && sensorValues[1]>=980 && sensorValues[2]>=980 && sensorValues[3]>=980 && sensorValues[4]>=980 && sensorValues[5]>=980 && sensorValues [6]>=980){ // A case when the line follower leaves the line
     if(previousError>0){       //Turn left if the line was to the left before
       motor_drive(-180,180);
     }
@@ -241,9 +347,6 @@ void  processing() {
   }
   if (a == 6) {
     multiD = v[2];
-  }
-  if (a == 7)  {
-    onoff = v[2];
   }
 }
 void motor_drive(int left, int right){
