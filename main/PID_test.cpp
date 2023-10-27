@@ -150,11 +150,6 @@ void loopGamepadControl(){
         // It is possible to set it by calling:
         myGamepad->setRumble(0xc0 /* force */, 0xc0 /* duration */);
       }
-    }
-  }
-}
-
-void printGamepadtoSerialMonitor(){
       // Another way to query the buttons, is by calling buttons(), or
       // miscButtons() which return a bitmask.
       // Some gamepads also have DPAD, axis and more.
@@ -182,7 +177,11 @@ void printGamepadtoSerialMonitor(){
 
       // You can query the axis and other properties as well. See Gamepad.h
       // For all the available functions.
+    }
+  }
 }
+
+
 
 void printQTR(){
   uint16_t position = qtr.readLineBlack(sensorValues);
@@ -193,6 +192,31 @@ void printQTR(){
   }
   Serial.println();
   delay(10);
+}
+void calibrateQTR(){
+  // configure the sensors
+  qtr.setTypeAnalog();
+  qtr.setSensorPins((const uint8_t[]){QTRSENSOR1, QTRSENSOR2, QTRSENSOR3, QTRSENSOR4, QTRSENSOR5, QTRSENSOR6, QTRSENSOR7, QTRSENSOR8}, SensorCount);
+
+  delay(500);
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, HIGH);
+  Serial.println("Calibrating, place sensor over white floor.");
+  for (uint16_t i = 0; i < 400; i++){
+    qtr.calibrate();
+    }
+  digitalWrite(LED_BUILTIN, LOW);
+  Serial.println();
+
+
+  //print threshold values
+  for (uint8_t i = 0; i < SensorCount; i++){
+    threshold[i] = (qtr.calibrationOn.minimum[i] + qtr.calibrationOn.maximum[i])/2;
+    Serial.print(threshold[i]);
+    Serial.print("  ");
+  }
+  Serial.println();
+  delay(1000);
 }
 
 void setup(){
@@ -210,7 +234,7 @@ void setup(){
   BP32.setup(&onConnectedGamepad, &onDisconnectedGamepad); //setup Bluepad32 Callbacks
 
 
-// motor setup
+  // motor setup
         // turn on all allocation timers
   ESP32PWM::allocateTimer(0);
 	ESP32PWM::allocateTimer(1);

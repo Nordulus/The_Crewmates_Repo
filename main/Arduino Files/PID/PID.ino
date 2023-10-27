@@ -234,11 +234,6 @@ void loopGamepadControl(){
         // It is possible to set it by calling:
         myGamepad->setRumble(0xc0 /* force */, 0xc0 /* duration */);
       }
-    }
-  }
-}
-
-void printGamepadtoSerialMonitor(){
       // Another way to query the buttons, is by calling buttons(), or
       // miscButtons() which return a bitmask.
       // Some gamepads also have DPAD, axis and more.
@@ -266,6 +261,8 @@ void printGamepadtoSerialMonitor(){
 
       // You can query the axis and other properties as well. See Gamepad.h
       // For all the available functions.
+    }
+  }
 }
 
 void loop(){
