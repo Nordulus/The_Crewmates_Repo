@@ -173,9 +173,8 @@ void setup(){
 
 }
 
-void loop(){
-  printQTR();
-  // This call fetches all the gamepad info from the NINA (ESP32) module.
+void loopGamepadControl(){
+    // This call fetches all the gamepad info from the NINA (ESP32) module.
   // Just call this function in your main loop.
   // The gamepads pointer (the ones received in the callbacks) gets updated
   // automatically.
@@ -235,11 +234,15 @@ void loop(){
         // It is possible to set it by calling:
         myGamepad->setRumble(0xc0 /* force */, 0xc0 /* duration */);
       }
+    }
+  }
+}
 
+void printGamepadtoSerialMonitor(){
       // Another way to query the buttons, is by calling buttons(), or
       // miscButtons() which return a bitmask.
       // Some gamepads also have DPAD, axis and more.
-      /* Serial.printf(
+      Serial.printf(
           "idx=%d, dpad: 0x%02x, buttons: 0x%04x, axis L: %4d, %4d, axis R: "
           "%4d, %4d, brake: %4d, throttle: %4d, misc: 0x%02x, gyro x:%6d y:%6d "
           "z:%6d, accel x:%6d y:%6d z:%6d\n",
@@ -259,24 +262,29 @@ void loop(){
           myGamepad->accelX(),      // Accelerometer X
           myGamepad->accelY(),      // Accelerometer Y
           myGamepad->accelZ()       // Accelerometer Z
-      ); */
+      );
 
       // You can query the axis and other properties as well. See Gamepad.h
       // For all the available functions.
-    }
-  }
+}
+
+void loop(){
+  printQTR();
+  loopGamepadControl();
 
   // The main loop must have some kind of "yield to lower priority task" event.
   // Otherwise the watchdog will get triggered.
   // If your main loop doesn't have one, just add a simple `vTaskDelay(1)`.
   // Detailed info here:
   // https://stackoverflow.com/questions/66278271/task-watchdog-got-triggered-the-tasks-did-not-reset-the-watchdog-in-time
-
   // vTaskDelay(1);
+
   delay(150);
 
   // robot_control();
 }
+
+
 void robot_control(){
   // read calibrated sensor values and obtain a measure of the line position
   // from 0 to 4000 (for a white line, use readLineWhite() instead)
