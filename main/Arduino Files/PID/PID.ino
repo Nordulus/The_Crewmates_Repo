@@ -147,7 +147,7 @@ void setup(){
   BP32.setup(&onConnectedGamepad, &onDisconnectedGamepad); //setup Bluepad32 Callbacks
 
 
-// motor setup
+  // motor setup
         // turn on all allocation timers
   ESP32PWM::allocateTimer(0);
 	ESP32PWM::allocateTimer(1);
