@@ -11,12 +11,13 @@ int P;
 int I;
 int D;
 
+int baseSpeed = 150;
+
 float Kp = 0.05;
 float Ki = 0.00001;
 float Kd = 0.8;
 
 int lastError = 0;
-
 
 QTRSensors qtr;
 Servo rightServo;
@@ -74,8 +75,14 @@ void PID_control() {
 
   int motorSpeedChange = P*Kp + I*Ki + D*Kd;
 
-  int motorSpeedA = 150 + motorSpeedChange;
-  int motorSpeedB = 150 - motorSpeedChange;
+  /*apparently "keep in mind the way the servos work is that they are 
+  centered around 1500; anything greater rotates one direction and 
+  anything less rotates in the other. typically servos will a range 
+  from around 500-2500, so anything past that likely will not have 
+  any visible changes" 
+  change baseSpeed to reflect this in a test at some point*/
+  int motorSpeedA = baseSpeed + motorSpeedChange;
+  int motorSpeedB = baseSpeed - motorSpeedChange;
 
   if (motorSpeedA > 180) {
     motorSpeedA = 180;
