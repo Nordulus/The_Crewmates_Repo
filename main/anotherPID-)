@@ -8,17 +8,17 @@
 #define leftServoPin 13
 #define NUM_SAMPLES_PER_SENSOR 4 // average 4 analog samples per sensor reading
 #define QTR_NO_EMITTER_PIN // emitter is controlled by digital pin 2
-#define QTRSENSOR1 36
-#define QTRSENSOR2 39
-#define QTRSENSOR3 34
-#define QTRSENSOR4 35
-#define QTRSENSOR5 32
-#define QTRSENSOR6 33
-#define QTRSENSOR7 25
-#define QTRSENSOR8 26
+#define QTRSENSOR1 26
+#define QTRSENSOR2 25
+#define QTRSENSOR3 33
+#define QTRSENSOR4 32
+#define QTRSENSOR5 16
+#define QTRSENSOR6 17
+#define QTRSENSOR7 5
+#define QTRSENSOR8 18
 #define LED_BUILTIN 2
 #define LFR_MAX_MOTOR_SPEED 90
-#define QTR_LINE_MID_VALUE 3600
+#define QTR_LINE_MID_VALUE 3500
 
 //initializing objects
 GamepadPtr myGamepads[BP32_MAX_GAMEPADS];
@@ -187,17 +187,17 @@ void loopGamepadControl(){
 
 void printQTR(){
   uint16_t position = qtr.readLineBlack(sensorValues);
-  for (uint8_t i = 0; i < SensorCount; i++)
-  {
+  for (uint8_t i = 0; i < SensorCount; i++){
     Serial.print(sensorValues[i]);
     Serial.print('\t');
   }
+  Serial.printf("Black line position: %u \n", position);
   Serial.println();
   delay(10);
 }
 void calibrateQTR(){
   // configure the sensors
-  qtr.setTypeAnalog();
+  qtr.setTypeRC();
   qtr.setSensorPins((const uint8_t[]){QTRSENSOR1, QTRSENSOR2, QTRSENSOR3, QTRSENSOR4, QTRSENSOR5, QTRSENSOR6, QTRSENSOR7, QTRSENSOR8}, SensorCount);
 
   delay(500);
@@ -209,29 +209,25 @@ void calibrateQTR(){
     }
   digitalWrite(LED_BUILTIN, LOW);
   Serial.println();
-  Serial.print("printing minimum values:");
-  for (uint8_t i = 0; i < SensorCount; i++){
+
+  // print the calibration minimum values measured when emitters were on
+    
+    for (uint8_t i = 0; i < SensorCount; i++)
+    {
       Serial.print(qtr.calibrationOn.minimum[i]);
       Serial.print(' ');
-  }
-  Serial.println();
-
-  // print max calibration values
-  Serial.print("printing max values");
-    for (uint8_t i = 0; i < SensorCount; i++){
-        Serial.print(qtr.calibrationOn.maximum[i]);
-        Serial.print(' ');
     }
     Serial.println();
 
-  //print threshold values
-  Serial.print("Printing threshold values");
-  for (uint8_t i = 0; i < SensorCount; i++){
-    threshold[i] = (qtr.calibrationOn.minimum[i] + qtr.calibrationOn.maximum[i])/2;
-    Serial.print(threshold[i]);
-    Serial.print("  ");
-  }
-  Serial.println();
+    // print the calibration maximum values measured when emitters were on
+    for (uint8_t i = 0; i < SensorCount; i++)
+    {
+      Serial.print(qtr.calibrationOn.maximum[i]);
+      Serial.print(' ');
+    }
+    Serial.println();
+    Serial.println();
+
   delay(1000);
 }
 
@@ -280,6 +276,8 @@ void setup(){
 }
 
 void loop(){
+    printQTR();
+    //loopGamepadControl();
     /**< Reads the QTR-8RC Line Sensor to Get the Line Position */
     LFR_Position = qtr.readLineBlack(sensorValues);
 
@@ -287,17 +285,17 @@ void loop(){
     LFR_Derivative = LFR_Proportional - LFR_LastProportional;         /**< Computes the Derivative Output of PID Control Algorithm */
     LFR_Integral += LFR_Proportional;                                 /**< Computes the Integral Output of PID Control Algorithm */
     LFR_LastProportional = LFR_Proportional;                          /**< Saves the Old Proportional Output of PID Control Algorithm */
-    // Serial.printf("%u position \n", LFR_Position);
-    // Serial.printf("%d proportional \n", LFR_Proportional);
-    // Serial.printf("%d derivative \n", LFR_Derivative);
-    // Serial.printf("%d lfr integral \n", LFR_Integral);
-    // Serial.printf("%d lft last proportional \n", LFR_LastProportional);
-    // Serial.printf("%.2f kp \n", Kp);
-    // Serial.printf("%f ki \n", Ki);
-    // Serial.printf("%.2f kd \n", Kd);
+    Serial.printf("%u position \n", LFR_Position);
+    Serial.printf("%d proportional \n", LFR_Proportional);
+    Serial.printf("%d derivative \n", LFR_Derivative);
+    Serial.printf("%d lfr integral \n", LFR_Integral);
+    Serial.printf("%d lft last proportional \n", LFR_LastProportional);
+    Serial.printf("%.2f kp \n", Kp);
+    Serial.printf("%f ki \n", Ki);
+    Serial.printf("%.2f kd \n", Kd);
     
     LFR_ControlOutput = (LFR_Proportional / Kp + LFR_Integral / Ki + LFR_Derivative * Kd); /**< Computes the Final Control Output of PID Control Algorithm 300RPM*/
-    // Serial.printf("%d\n", LFR_ControlOutput);
+    Serial.printf("%d\n", LFR_ControlOutput);
 
     if (LFR_ControlOutput > Speed){
         LFR_ControlOutput = Speed;    /**< Keeps The Motor Speed in Limit */
@@ -311,7 +309,7 @@ void loop(){
         leftServo.write(-Speed - LFR_ControlOutput - 90);
         rightServo.write(Speed + 90);
     }
-    else {
+    else{
         leftServo.write(-Speed - 90);
         rightServo.write(Speed - LFR_ControlOutput + 90);
     }
