@@ -18,7 +18,7 @@
 #define QTRSENSOR8 26
 #define LED_BUILTIN 2
 #define LFR_MAX_MOTOR_SPEED 90
-#define QTR_LINE_MID_VALUE 3600
+#define QTR_LINE_MID_VALUE 3500
 
 //initializing objects
 GamepadPtr myGamepads[BP32_MAX_GAMEPADS];
@@ -198,7 +198,7 @@ void printQTR(){
 void calibrateQTR(){
   // configure the sensors
   qtr.setTypeAnalog();
-  qtr.setSensorPins((const uint8_t[]){QTRSENSOR1, QTRSENSOR2, QTRSENSOR3, QTRSENSOR4, QTRSENSOR5, QTRSENSOR6, QTRSENSOR7, QTRSENSOR8}, SensorCount);
+  qtr.setSensorPins((const uint8_t[]){36, 39, 34, 35, 32, 33, 25, 26}, SensorCount);
 
   delay(500);
   pinMode(LED_BUILTIN, OUTPUT);

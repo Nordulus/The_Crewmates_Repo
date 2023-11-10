@@ -13,7 +13,7 @@ void setup() {
 	ESP32PWM::allocateTimer(3);
 	myservo.setPeriodHertz(54);
 	myservo.attach(servoPin,1000, 2000);
-  Serial.begin(9600);
+  Serial.begin(115200);
   Serial.print("Serial monitor check");
   Serial.println();
   pinMode(led, OUTPUT);

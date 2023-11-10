@@ -96,6 +96,10 @@ void PID_control() {
   if (motorSpeedB < 1000) {
     motorSpeedB = 1000;
   }
+  if (motorSpeedB & motorSpeedA == 1500){
+    motorSpeedA = 2000;
+    motorSpeedB = 2000;
+  }
   leftServo.write(motorSpeedA);
   rightServo.write(motorSpeedB);
 }

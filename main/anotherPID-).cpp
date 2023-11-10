@@ -183,8 +183,6 @@ void loopGamepadControl(){
   vTaskDelay(1);
 }
 
-
-
 void printQTR(){
   uint16_t position = qtr.readLineBlack(sensorValues);
   for (uint8_t i = 0; i < SensorCount; i++){

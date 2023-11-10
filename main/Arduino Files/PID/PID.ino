@@ -109,7 +109,7 @@ int lfspeed = 230;
 void calibrateQTR(){
   // configure the sensors
   qtr.setTypeAnalog();
-  qtr.setSensorPins((const uint8_t[]){QTRSENSOR1, QTRSENSOR2, QTRSENSOR3, QTRSENSOR4, QTRSENSOR5, QTRSENSOR6, QTRSENSOR7, QTRSENSOR8}, SensorCount);
+  qtr.setSensorPins((const uint8_t[]){36, 39, 34, 35, 32, 33, 25, 26}, SensorCount);
 
   delay(500);
   pinMode(LED_BUILTIN, OUTPUT);
@@ -267,7 +267,7 @@ void loopGamepadControl(){
 
 void loop(){
   printQTR();
-  loopGamepadControl();
+  //loopGamepadControl();
 
   // The main loop must have some kind of "yield to lower priority task" event.
   // Otherwise the watchdog will get triggered.
@@ -278,7 +278,7 @@ void loop(){
 
   delay(150);
 
-  // robot_control();
+  robot_control();
 }
 
 
