@@ -478,7 +478,7 @@ void getInitColor(){
     delay(1000);
 }
 
-  void wallfollower(){
+void wallfollower(){
     
     //int diff
     //Serial.print("right");
