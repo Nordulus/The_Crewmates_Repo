@@ -6,14 +6,16 @@
 
 #define rightServoPin 12
 #define leftServoPin 13
+#define launcherPin 17
 Servo rightServo;
 Servo leftServo;
+Servo launcher;
 
 int P;
 int I;
 int D;
-int baseSpeedA = 1750;
-int baseSpeedB = 1190;
+int baseSpeedA = 1750; //left
+int baseSpeedB = 1190; //right
 float Kp = 0.047;
 float Ki = 0.000015;
 float Kd = 0.8;
@@ -29,6 +31,11 @@ GamepadPtr myGamepads[BP32_MAX_GAMEPADS];
 int buttonB = 0;
 int buttonA = 0;
 int buttonX = 0;
+int buttonY = 0;
+int dpadUp = 0;
+int dpadDown = 0;
+int dpadRight = 0;
+int dpadLeft = 0;
 
 void setup() {
     pinMode(2, OUTPUT);
@@ -45,6 +52,8 @@ void setup() {
     rightServo.attach(rightServoPin, 1000, 2000);
     leftServo.setPeriodHertz(50);
     leftServo.attach(leftServoPin, 1000, 2000);
+    launcher.setPeriodHertz(50);
+    launcher.attach(launcherPin, 1000, 2000);
     Serial.printf("Firmware: %s\n", BP32.firmwareVersion());
     const uint8_t *addr = BP32.localBdAddress();
     Serial.printf("BD Addr: %2X:%2X:%2X:%2X:%2X:%2X\n", addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
@@ -60,7 +69,7 @@ void setup() {
 }
 
 void loop() {
-BP32.update();
+  BP32.update();
   for (int i = 0; i < BP32_MAX_GAMEPADS; i++) {
     GamepadPtr myGamepad = myGamepads[i];
 
@@ -75,10 +84,56 @@ BP32.update();
           buttonB = 1;
           buttonX = 0;
         }
-        if (myGamepad->x()) {
+        if (myGamepad->y()) {
           buttonA = 0;
           buttonB = 0;
           buttonX = 1;
+        }
+        if (myGamepad->x()) {
+          buttonA = 0;
+          buttonB = 0;
+          buttonX = 0;
+          buttonY = 1;
+        }
+        if ((myGamepad->dpad()) == 1){
+          dpadUp = 1;
+          buttonB = 0;
+          buttonA = 0;
+          buttonX = 0;
+          buttonY = 0;
+          dpadDown = 0;
+          dpadRight = 0;
+          dpadLeft = 0;
+        }
+        if ((myGamepad->dpad()) == 2){
+          dpadUp = 0;
+          buttonB = 0;
+          buttonA = 0;
+          buttonX = 0;
+          buttonY = 0;
+          dpadDown = 1;
+          dpadRight = 0;
+          dpadLeft = 0;
+        }
+        if (buttonA == 0 && buttonB == 0 && buttonX == 0) {
+            leftServo.write(1440);
+        }
+        if (dpadUp == 1){
+          launcher.write(1750);
+          delay(1600);
+          launcher.write(1500);
+          dpadUp = 0;
+        }
+        if (dpadDown == 1){
+          launcher.write(1250);
+          delay(1600);
+          launcher.write(1500);
+          dpadDown = 0;
+        }
+
+        if (buttonY == 1){
+          Serial.print(myGamepad->dpad());
+          Serial.println();
         }
 
         if (buttonA == 1){
@@ -86,7 +141,7 @@ BP32.update();
           Serial.print("btMotorControl");
           Serial.println();
           rightServo.write( ((((float) myGamepad->axisY()) / 512.0f) * -500) + 1500 );
-          leftServo.write( ((((float) myGamepad->axisRY()) / 512.0f) * 500) + 1500 );
+          leftServo.write( ((((float) myGamepad->axisRY()) / 512.0f) * 500) + 1440 );
         }
         if (buttonB == 1){
           calibrateQTR();
@@ -99,6 +154,10 @@ BP32.update();
           Serial.print("Linefollow");
           Serial.println();
         }
+        //dpad down = 2
+        //dpad up = 1
+        //dpad right = 4
+        //dpad left = 8
     }
   }
   vTaskDelay(1);
@@ -149,7 +208,10 @@ void PID_control() {
   Serial.printf("Error: %u", error);
   Serial.println();
 }
-void btMotorControl(){}
+void btMotorControl(){
+
+}
+
 void printQTR(){
   uint16_t position = qtr.readLineBlack(sensorValues);
   for (uint8_t i = 0; i < SensorCount; i++)
