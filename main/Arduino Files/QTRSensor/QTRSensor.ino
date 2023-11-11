@@ -71,6 +71,7 @@ uint16_t position = qtra.readLineBlack(sensorValues);
     Serial.print(sensorValues[i]);
     Serial.print('\t');
   }
+  Serial.printf("black line pos: %u \n", position);
   Serial.println();
 
 delay(250);

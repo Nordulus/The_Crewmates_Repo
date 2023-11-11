@@ -24,6 +24,10 @@ limitations under the License.
 #include <ESP32Servo.h>
 #include <ESP32SharpIR.h>
 #include <QTRSensors.h>
+#include <ESP32SharpIR.h>
+#include <Wire.h>
+#include <Arduino_APDS9960.h>
+#include <bits/stdc++.h>
 
 #define LED 2
 #define servoPin1 12
@@ -38,8 +42,17 @@ limitations under the License.
 #define QTRSENSOR6 33
 #define QTRSENSOR7 25
 #define QTRSENSOR8 26
+#define APDS9960_INT 2
+#define I2C_SDA 21
+#define I2C_SCL 22                                                                                                                                      
+#define I2C_FREQ 100000
+TwoWire I2C_0 = TwoWire(0);
+APDS9960 apds = APDS9960(I2C_0, APDS9960_INT);
 int pos1 = 0;
 int pos2 = 0;
+const int IRbasespeedright = 1500;
+const int IRbasespeedleft = 1440;
+int totalVal = 0;
 
 //
 // README FIRST, README FIRST, README FIRST
@@ -57,9 +70,11 @@ int pos2 = 0;
 
 GamepadPtr myGamepads[BP32_MAX_GAMEPADS];
 
-Servo servo1;
-Servo servo2;
-ESP32SharpIR sensor1( ESP32SharpIR::GP2Y0A21YK0F, 27);
+Servo rightServo;
+Servo leftServo;
+ESP32SharpIR left(ESP32SharpIR::GP2Y0A21YK0F, 4);
+ESP32SharpIR center(ESP32SharpIR::GP2Y0A21YK0F, 15);
+ESP32SharpIR right(ESP32SharpIR::GP2Y0A21YK0F, 14);
 QTRSensors qtr;
 const uint8_t SensorCount = 8;
 uint16_t sensorValues[SensorCount];
@@ -101,27 +116,6 @@ void onDisconnectedGamepad(GamepadPtr gp) {
     if (!foundGamepad) {
         // Console.println("CALLBACK: Gamepad disconnected, but not found in myGamepads");
     }
-}
-
-void forward(int time = 1000, int lr = 3){
-    // servo runs at full speed for set time param
-    if (lr == 1){
-        servo1.write(180);
-        delay(time);
-    }
-
-    if (lr == 2){
-        servo2.write(180);
-        delay(time);
-    }
-
-    if (lr == 3){
-        servo1.write(180);
-        servo2.write(180);
-        delay(time);
-    }
-
-
 }
 
 void calibrateQTR(){
@@ -172,21 +166,65 @@ int readandprintQTR(){
 
 void blinkLED(){
     // blinker code
-    digitalWrite(LED, HIGH);
-    Serial.println("LED is on");
-    delay(50);
     digitalWrite(LED, LOW);
+    Serial.println("LED is on");
+    delay(1000);
+    digitalWrite(LED, HIGH);
     Serial.println("LED is off");
-    delay(50);
+    delay(1000);
+}
+
+void wallfollower(){
+    
+    //int diff
+    //Serial.print("right");
+    //Serial.println(right.getDistanceFloat());
+    //Serial.print("left");
+    //Serial.println(left.getDistanceFloat());
+    //rightServo.write(IRbasespeedright);//right moter 1000-1500 is forward
+    //leftServo.write(IRbasespeedleft);//left with lag 1440-1940 is forward
+    //delay(3000);
+
+    //rightServo.write(IRbasespeedright + 250); //90 degrees right
+    //leftServo.write(IRbasespeedleft + 250); 
+    //delay(800);
+
+    //rightServo.write(IRbasespeedright - 250); //90 degrees left
+    //leftServo.write(IRbasespeedleft - 250); 
+    //delay(800);
+    
+    //Wall sensor code
+    if(center.getDistanceFloat() <= 10) //stops at value 10
+    {
+        rightServo.write(IRbasespeedright);//stop
+        leftServo.write(IRbasespeedleft);
+        delay(100);
+        if(left.getDistanceFloat() < right.getDistanceFloat())
+        {
+            rightServo.write(IRbasespeedright + 300);//turn right
+            leftServo.write(IRbasespeedleft + 300);
+            delay(800);
+        }else
+        if(left.getDistanceFloat() > right.getDistanceFloat())
+        {
+            rightServo.write(IRbasespeedright - 300);//turn left
+            leftServo.write(IRbasespeedleft - 300);
+            delay(800);
+        }
+    rightServo.write(IRbasespeedright - 300);//go straight
+    leftServo.write(IRbasespeedleft + 300);
+    }
 }
 
 // Arduino setup function. Runs in CPU 1
 void setup() {
-    delay(500);
-    Serial.begin(115200);
+    Serial.println("in setup");
+    //delay(500);
+   Serial.begin(115200);
     Serial.print("Serial monitor check");
-    // Console.printf("Firmware: %s\n", BP32.firmwareVersion());
+    Console.printf("Firmware: %s\n", BP32.firmwareVersion());
 
+Serial.println("in bo32");
     // Setup the Bluepad32 callbacks
     BP32.setup(&onConnectedGamepad, &onDisconnectedGamepad);
 
@@ -195,27 +233,27 @@ void setup() {
     // Calling "forgetBluetoothKeys" in setup() just as an example.
     // Forgetting Bluetooth keys prevents "paired" gamepads to reconnect.
     // But might also fix some connection / re-connection issues.
-    BP32.forgetBluetoothKeys();
+    //BP32.forgetBluetoothKeys();
 
     // motor setup
-        // turn on all allocation timers
+        // turn on all allocation timers     
     ESP32PWM::allocateTimer(0);
 	ESP32PWM::allocateTimer(1);
 	ESP32PWM::allocateTimer(2);
 	ESP32PWM::allocateTimer(3);
-    servo1.setPeriodHertz(50);
-    servo1.attach(servoPin1, 1000, 2000);
-    servo1.write(90);
-    servo2.setPeriodHertz(50);
-    servo2.attach(servoPin2, 1000, 2000);
-    servo2.write(90);
+    rightServo.setPeriodHertz(50);
+    rightServo.attach(servoPin1, 1000, 2000);
+    rightServo.write(90);
+    leftServo.setPeriodHertz(50);
+    leftServo.attach(servoPin2, 1000, 2000);
+    leftServo.write(90); 
     //servos are stationary
     
-
+Serial.println("finished timer setup");
     // QTR SENSOR
-    qtr.setTypeAnalog();
-    qtr.setSensorPins((const uint8_t[]){QTRSENSOR1, QTRSENSOR2, QTRSENSOR3, QTRSENSOR4, QTRSENSOR5, QTRSENSOR6, QTRSENSOR7, QTRSENSOR8}, SensorCount);
-    calibrateQTR();
+    //qtr.setTypeAnalog();
+    //qtr.setSensorPins((const uint8_t[]){QTRSENSOR1, QTRSENSOR2, QTRSENSOR3, QTRSENSOR4, QTRSENSOR5, QTRSENSOR6, QTRSENSOR7, QTRSENSOR8}, SensorCount);
+    //calibrateQTR();
 
     // qtr.setTypeRC(); // or setTypeAnalog()
     // qtr.setSensorPins((const uint8_t[]) {12,13,14}, 3);
@@ -226,10 +264,142 @@ void setup() {
     //     delay(20);
     // }
     // qtr.calibrate();
+
+Serial.println("at filter");
+    //IR sensor setup
+    left.setFilterRate(0.1f);
+    center.setFilterRate(0.1f);
+    right.setFilterRate(0.1f);
+
+    I2C_0.begin(I2C_SDA, I2C_SCL, I2C_FREQ);
+    //apds.setInterruptPin(APDS9960_INT);
+    apds.begin();
+    Serial.begin(115200);
 }
+
+void colorLoop(int val) {
+    int r, g, b, a;
+    int checker = val;
+    rightServo.write(IRbasespeedright - 300);//go straight
+    leftServo.write(IRbasespeedleft + 300);
+    delay(1000);
+    while(checker != 0)
+    {
+
+        while (!apds.colorAvailable())
+        {
+            delay(5);
+        }
+        apds.readColor(r, g, b, a);
+        if (r >= 20 && g >= 20 && b >= 20)
+        {
+            //white
+        }
+        else if (r > g && r > b)
+        {
+        if (checker == 1)
+        {
+            rightServo.write(IRbasespeedright);//stop
+            leftServo.write(IRbasespeedleft);
+            checker=0;
+        }
+    }
+    else if (g > r && g > b)
+    {
+        if (checker == 2)
+        {
+            rightServo.write(IRbasespeedright);//stop
+            leftServo.write(IRbasespeedleft);
+            checker=0;
+        }
+    }
+    else if ((b <= 10 && b == g) || (b > 10 && (b - g) < 10))
+    {
+        if (checker == 3)
+        {
+            rightServo.write(IRbasespeedright);//stop
+            leftServo.write(IRbasespeedleft);
+            checker=0;
+        }
+    }
+    else
+    {
+        //black
+    }
+    
+    //red = r>30
+    //blue = b & g >=15
+    //g>20
+    //white everything>30
+    delay(100);
+    }
+    
+    
+
+//red 1 flash
+//green 2 flash
+//blue 3 flash
+}
+
+void getInitColor(){
+    int r, g, b, a;
+    while (!apds.colorAvailable())
+    {
+            delay(5);
+    }
+
+    apds.readColor(r, g, b, a);
+    if (r >= 20 && g >= 20 && b >= 20)
+    {
+        
+    }
+    else if (r > g && r > b)
+    {
+        blinkLED();
+        Serial.println("save red");
+        colorLoop(1);
+        
+    }
+    else if (g > r && g > b)
+    {
+        blinkLED();
+        blinkLED();
+        Serial.println("save green");
+        colorLoop(2);
+    }
+    else if ((b <= 10 && b == g) || (b > 10 && (b - g) < 10))
+    {
+        blinkLED();
+        blinkLED();
+        blinkLED();
+        Serial.println("save blue");
+        colorLoop(3);
+    }
+    
+    
+    //red = r>30
+    //blue = b & g >=15
+    //g>20
+    //white everything>30
+   /* 
+    Serial.print("R: ");
+    Serial.println(r);
+    Serial.print("G: ");
+    Serial.println(g);
+    Serial.print("B: ");
+    Serial.println(b);
+    Serial.print("Ambient");
+    Serial.println(a);
+    */
+    
+}
+
+
+
 
 // ESP32 loop function. Runs in CPU 1
 void loop() {
+    //Serial.println("not read");
     // This call fetches all the gamepad info from the NINA (ESP32) module.
     // Just call this function in your main loop.
     // The gamepads pointer (the ones received in the callbacks) gets updated
@@ -237,13 +407,13 @@ void loop() {
     BP32.update();
     // It is safe to always do this before using the gamepad API.
     // This guarantees that the gamepad is valid and connected.
-    for (int i = 0; i < BP32_MAX_GAMEPADS; i++) {
+    /* for (int i = 0; i < BP32_MAX_GAMEPADS; i++) {
         GamepadPtr myGamepad = myGamepads[i];
 
         if (myGamepad && myGamepad->isConnected()) {
 
-            servo1.write( ((((float) myGamepad->axisY()) / 512.0f) * 500) + 1500 );
-            servo2.write( ((((float) myGamepad->axisY()) / 512.0f) * 500) + 1500 );
+            rightServo.write( ((((float) myGamepad->axisY()) / 512.0f) * 500) + 1500 );
+            leftServo.write( ((((float) myGamepad->axisY()) / 512.0f) * 500) + 1500 );
             // Another way to query the buttons, is by calling buttons(), or
             // miscButtons() which return a bitmask.
             // Some gamepads also have DPAD, axis and more.
@@ -265,7 +435,7 @@ void loop() {
             // You can query the axis and other properties as well. See Gamepad.h
             // For all the available functions.
         }
-    }
+    }  */ 
 
     // Serial.println(sensor1.getDistanceFloat());
 
@@ -283,7 +453,14 @@ void loop() {
     // if(error == 0){
     //     Serial.println("Straight Ahead");  
     // }
+    //Serial.println(left.getDistanceFloat());
+    wallfollower();
+    
+    
+    //getInitColor();// check color and move to the next color
+    
+    
     vTaskDelay(1);
-    // delay(100);
+    // delay(100);    
 }
 

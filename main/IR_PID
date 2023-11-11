@@ -1,0 +1,52 @@
+#include <ESP32SharpIR.h>
+#include <ESP32Servo.h>
+
+#define servoPin1 12
+#define servoPin2 13
+
+ESP32SharpIR left(ESP32SharpIR::GP2Y0A21YK0F, 2);
+ESP32SharpIR center(ESP32SharpIR::GP2Y0A21YK0F, 15);
+ESP32SharpIR right(ESP32SharpIR::GP2Y0A21YK0F, 0);
+Servo servo1; //180 = forward
+Servo servo2; //0 = backward
+int IRbaseSpeedA = 1750;
+int IRbaseSpeedB = 1190;
+
+const double IRkp = 1;
+const double IRki = 1;
+const double IRkd = 1;
+
+double IRkiTotal = 0.0;
+double IRpriorError = 0.0;
+
+void setup(){
+    delay(500);
+    left.setFilterRate(0.1f);
+    center.setFilterRate(0.1f);
+    right.setFilterRate(0.1f);
+}
+
+void loop(){
+    double IRerror = left.getDistanceFloat()-right.getDistanceFloat();
+    double IRprop = IRkp * IRerror;
+
+    IRkiTotal += IRerror;
+    if(IRkiTotal > 1000)
+    {
+        IRkiTotal = 1000;
+    }
+    double IRintegral = IRki * IRkiTotal;
+    //might have to put limits on IRki to prevent integral
+    //windup
+    float IRderivative = IRkd * (IRerror - IRpriorError);
+    IRpriorError = IRerror;
+
+    float IRpidResult = IRprop + IRintegral + IRderivative;
+
+    IRbaseSpeedA
+    IRbaseSpeedB
+
+    servo1.write()
+    //motor + IRpidResult
+    vTaskDelay(1);
+}

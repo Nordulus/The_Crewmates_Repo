@@ -67,11 +67,13 @@ delay(1000);
 void loop(){
 
 uint16_t position = qtra.readLineBlack(sensorValues);
-  for (uint8_t i = 0; i < SensorCount; i++)
-  {
+  for (uint8_t i = 0; i < SensorCount; i++){
+    
     Serial.print(sensorValues[i]);
     Serial.print('\t');
   }
+  Serial.println();
+  Serial.printf("Black line position: %u\n", position);
   Serial.println();
 
 delay(250);
