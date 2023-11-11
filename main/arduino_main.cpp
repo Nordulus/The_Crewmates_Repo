@@ -69,9 +69,9 @@ GamepadPtr myGamepads[BP32_MAX_GAMEPADS];
 
 Servo rightServo;
 Servo leftServo;
-ESP32SharpIR left(ESP32SharpIR::GP2Y0A21YK0F, 2);
+ESP32SharpIR left(ESP32SharpIR::GP2Y0A21YK0F, 0);
 ESP32SharpIR center(ESP32SharpIR::GP2Y0A21YK0F, 15);
-ESP32SharpIR right(ESP32SharpIR::GP2Y0A21YK0F, 0);
+ESP32SharpIR right(ESP32SharpIR::GP2Y0A21YK0F, 4);
 QTRSensors qtr;
 const uint8_t SensorCount = 8;
 uint16_t sensorValues[SensorCount];
@@ -172,77 +172,42 @@ void blinkLED(){
 }
 
 void wallfollower(){
-    rightServo.write(1500);//right moter 1000-1500 is forward
-    leftServo.write(1440);//left with lag 1440-1940 is forward
-    delay(3000);
+    int IRbasespeedright = 1500;
+    int IRbasespeedleft = 1450;
 
-    //rightServo.write(1750); //90 degrees right
-    //leftServo.write(1690); 
+    //rightServo.write(IRbasespeedright);//right moter 1000-1500 is forward
+    //leftServo.write(IRbasespeedleft);//left with lag 1440-1940 is forward
+    //delay(3000);
+
+    //rightServo.write(IRbasespeedright + 250); //90 degrees right
+    //leftServo.write(IRbasespeedleft + 250); 
     //delay(800);
 
-    rightServo.write(1250); //90 degrees left
-    leftServo.write(1190); 
-    delay(800);
+    //rightServo.write(IRbasespeedright - 250); //90 degrees left
+    //leftServo.write(IRbasespeedleft - 250); 
+    //delay(800);
     
     //Wall sensor code
-    /*if(center.getDistanceFloat() <= 10.50) //stops at value 10.50
+    if(center.getDistanceFloat() <= 10.50) //stops at value 10.50
     {
-        Serial.println("stop");
-        rightServo.write(1500);
-        leftServo.write(1440);
-        delay(500);
+        rightServo.write(IRbasespeedright);//stop
+        leftServo.write(IRbasespeedleft);
+        delay(100);
 
-        if(left.getDistanceFloat() <= right.getDistanceFloat())
+        if(left.getDistanceFloat() < right.getDistanceFloat())
         {
-            Serial.println("turn right");
-            rightServo.write(1750);
-            leftServo.write(1690);
-            delay(1000);
+            //rightServo.write(IRbasespeedright + 250);//turn right
+            //leftServo.write(IRbasespeedleft + 250);
+            //delay(800);
             
-        }else if(right.getDistanceFloat() <= left.getDistanceFloat())
-        {
-            Serial.println("turn left");
-            rightServo.write(1250);
-            leftServo.write(1190);
-            delay(1000);
+        }else if(left.getDistanceFloat() > right.getDistanceFloat()){
+            rightServo.write(IRbasespeedright - 250);//turn left
+            leftServo.write(IRbasespeedleft - 250);
+            delay(800);
         }
-        //inch forward
-        rightServo.write(1750);
-        leftServo.write(1190);
-        delay(1000);
-    }else{
-    Serial.println("Go straight");
-    rightServo.write(1750);
-    leftServo.write(1190);
+    rightServo.write(IRbasespeedright - 250);//go straight
+    leftServo.write(IRbasespeedleft + 250);
     }
- */
-}
-
-void colorSetup() {
-    I2C_0.begin(I2C_SDA, I2C_SCL, I2C_FREQ);
-    apds.setInterruptPin(APDS9960_INT);
-    apds.begin();
-    Serial.begin(115200);
-    colorLoop();
-}
-
-void colorLoop() {
-    int r, g, b, a;
-    while (!apds.colorAvailable())
-    {
-        delay(5);
-    }
-
-    apds.readColor(r, g, b, a);
-
-    Serial.print("R: ");
-    Serial.println(r);
-    Serial.print("G: ");
-    Serial.println(g);
-    Serial.print("B: ");
-    Serial.println(b);
-    Serial.print("Ambient");
-    Serial.println(a);
 }
 
 // Arduino setup function. Runs in CPU 1
@@ -251,7 +216,7 @@ void setup() {
     //delay(500);
    Serial.begin(115200);
     Serial.print("Serial monitor check");
-    // Console.printf("Firmware: %s\n", BP32.firmwareVersion());
+    Console.printf("Firmware: %s\n", BP32.firmwareVersion());
 
     // Setup the Bluepad32 callbacks
     BP32.setup(&onConnectedGamepad, &onDisconnectedGamepad);
@@ -295,12 +260,36 @@ void setup() {
 
     //IR sensor setup
     //left.setFilterRate(0.1f);
-    center.setFilterRate(0.1f);
+    //center.setFilterRate(0.1f);
     //right.setFilterRate(0.1f);
 
+    Serial.println("Omegalul I am here");
+    I2C_0.begin(I2C_SDA, I2C_SCL, I2C_FREQ);
+    apds.setInterruptPin(APDS9960_INT);
+    apds.begin();
+    Serial.begin(115200);
 
 }
+void colorLoop() {
+    int r, g, b, a;
+    
+    while (!apds.colorAvailable())
+    {
+        Serial.print("not ready");
+            delay(5);
+    }
+    
+    apds.readColor(r, g, b, a);
 
+    Serial.print("R: ");
+    Serial.println(r);
+    Serial.print("G: ");
+    Serial.println(g);
+    Serial.print("B: ");
+    Serial.println(b);
+    Serial.print("Ambient");
+    Serial.println(a);
+}
 // ESP32 loop function. Runs in CPU 1
 void loop() {
     //Serial.println("not read");
@@ -308,7 +297,7 @@ void loop() {
     // Just call this function in your main loop.
     // The gamepads pointer (the ones received in the callbacks) gets updated
     // automatically.
-    //BP32.update();
+    BP32.update();
     // It is safe to always do this before using the gamepad API.
     // This guarantees that the gamepad is valid and connected.
     /* for (int i = 0; i < BP32_MAX_GAMEPADS; i++) {
@@ -357,7 +346,9 @@ void loop() {
     // if(error == 0){
     //     Serial.println("Straight Ahead");  
     // }
+    //Serial.println(left.getDistanceFloat());
     wallfollower();  
+    //colorLoop();
     vTaskDelay(1);
     // delay(100);    
 }
