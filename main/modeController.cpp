@@ -3,13 +3,28 @@
 #include <QTRSensors.h>
 #include <ESP32Servo.h>
 #include <sdkconfig.h>
+#include <ESP32SharpIR.h>
+#include <Wire.h>
+#include <Arduino_APDS9960.h>
+#include <bits/stdc++.h>
 
 #define rightServoPin 12
 #define leftServoPin 13
 #define launcherPin 17
+#define APDS9960_INT 2
+#define I2C_SDA 21
+#define I2C_SCL 22                                                                                                                                      
+#define I2C_FREQ 100000
+TwoWire I2C_0 = TwoWire(0);
+APDS9960 apds = APDS9960(I2C_0, APDS9960_INT);
 Servo rightServo;
 Servo leftServo;
 Servo launcher;
+ESP32SharpIR left(ESP32SharpIR::GP2Y0A21YK0F, 4);
+ESP32SharpIR center(ESP32SharpIR::GP2Y0A21YK0F, 15);
+ESP32SharpIR right(ESP32SharpIR::GP2Y0A21YK0F, 14);
+const int IRbasespeedright = 1500;
+const int IRbasespeedleft = 1440;
 
 int P;
 int I;
@@ -36,6 +51,7 @@ int dpadUp = 0;
 int dpadDown = 0;
 int dpadRight = 0;
 int dpadLeft = 0;
+
 
 void setup() {
     pinMode(2, OUTPUT);
@@ -66,6 +82,14 @@ void setup() {
     // Forgetting Bluetooth keys prevents "paired" gamepads to reconnect.
     // But might also fix some connection / re-connection issues.
     BP32.forgetBluetoothKeys();
+
+    left.setFilterRate(0.1f);//IR follower setup
+    center.setFilterRate(0.1f);
+    right.setFilterRate(0.1f);
+    I2C_0.begin(I2C_SDA, I2C_SCL, I2C_FREQ);
+    //apds.setInterruptPin(APDS9960_INT);
+    apds.begin();
+    Serial.begin(115200);
 }
 
 void loop() {
@@ -115,6 +139,26 @@ void loop() {
           dpadRight = 0;
           dpadLeft = 0;
         }
+        if ((myGamepad->dpad()) == 4){
+          dpadUp = 0;
+          buttonB = 0;
+          buttonA = 0;
+          buttonX = 0;
+          buttonY = 0;
+          dpadDown = 0;
+          dpadRight = 1;
+          dpadLeft = 0;
+        }
+        if ((myGamepad->dpad()) == 8){
+          dpadUp = 0;
+          buttonB = 0;
+          buttonA = 0;
+          buttonX = 0;
+          buttonY = 0;
+          dpadDown = 0;
+          dpadRight = 0;
+          dpadLeft = 1;
+        }
         if (buttonA == 0 && buttonB == 0 && buttonX == 0) {
             leftServo.write(1440);
         }
@@ -154,10 +198,16 @@ void loop() {
           Serial.print("Linefollow");
           Serial.println();
         }
+        if (dpadRight == 1){
+          wallfollower();
+        }
+        if (dpadLeft == 1){
+          getInitColor();
+        }
         //dpad down = 2
         //dpad up = 1
-        //dpad right = 4
-        //dpad left = 8
+        //dpad right = 4 wall follow
+        //dpad left = 8 color
     }
   }
   vTaskDelay(1);
@@ -272,4 +322,170 @@ void onDisconnectedGamepad(GamepadPtr gp) {
     Serial.println(
         "CALLBACK: Gamepad disconnected, but not found in myGamepads");
   }
+
+void colorLoop(int val) {
+    int r, g, b, a;
+    int checker = val;
+    rightServo.write(IRbasespeedright - 300);//go straight
+    leftServo.write(IRbasespeedleft + 300);
+    delay(1000);
+    while(checker != 0)
+    {
+
+        while (!apds.colorAvailable())
+        {
+            delay(5);
+        }
+        apds.readColor(r, g, b, a);
+        if (r >= 20 && g >= 20 && b >= 20)
+        {
+            //white
+        }
+        else if (r > g && r > b)
+        {
+        if (checker == 1)
+        {
+            rightServo.write(IRbasespeedright);//stop
+            leftServo.write(IRbasespeedleft);
+            checker=0;
+        }
+    }
+    else if (g > r && g > b)
+    {
+        if (checker == 2)
+        {
+            rightServo.write(IRbasespeedright);//stop
+            leftServo.write(IRbasespeedleft);
+            checker=0;
+        }
+    }
+    else if ((b <= 10 && b == g) || (b > 10 && (b - g) < 10))
+    {
+        if (checker == 3)
+        {
+            rightServo.write(IRbasespeedright);//stop
+            leftServo.write(IRbasespeedleft);
+            checker=0;
+        }
+    }
+    else
+    {
+        //black
+    }
+    
+    //red = r>30
+    //blue = b & g >=15
+    //g>20
+    //white everything>30
+    delay(100);
+    }
+//red 1 flash
+//green 2 flash
+//blue 3 flash
+}
+
+void getInitColor(){
+    int r, g, b, a;
+    while (!apds.colorAvailable())
+    {
+            delay(5);
+    }
+
+    apds.readColor(r, g, b, a);
+    if (r >= 20 && g >= 20 && b >= 20)
+    {
+        
+    }
+    else if (r > g && r > b)
+    {
+        blinkLED();
+        Serial.println("save red");
+        colorLoop(1);
+        
+    }
+    else if (g > r && g > b)
+    {
+        blinkLED();
+        blinkLED();
+        Serial.println("save green");
+        colorLoop(2);
+    }
+    else if ((b <= 10 && b == g) || (b > 10 && (b - g) < 10))
+    {
+        blinkLED();
+        blinkLED();
+        blinkLED();
+        Serial.println("save blue");
+        colorLoop(3);
+    }
+    
+    
+    //red = r>30
+    //blue = b & g >=15
+    //g>20
+    //white everything>30
+   /* 
+    Serial.print("R: ");
+    Serial.println(r);
+    Serial.print("G: ");
+    Serial.println(g);
+    Serial.print("B: ");
+    Serial.println(b);
+    Serial.print("Ambient");
+    Serial.println(a);
+    */
+}
+
+  void blinkLED(){
+    // blinker code
+    digitalWrite(LED, LOW);
+    Serial.println("LED is on");
+    delay(1000);
+    digitalWrite(LED, HIGH);
+    Serial.println("LED is off");
+    delay(1000);
+}
+
+  void wallfollower(){
+    
+    //int diff
+    //Serial.print("right");
+    //Serial.println(right.getDistanceFloat());
+    //Serial.print("left");
+    //Serial.println(left.getDistanceFloat());
+    //rightServo.write(IRbasespeedright);//right moter 1000-1500 is forward
+    //leftServo.write(IRbasespeedleft);//left with lag 1440-1940 is forward
+    //delay(3000);
+
+    //rightServo.write(IRbasespeedright + 250); //90 degrees right
+    //leftServo.write(IRbasespeedleft + 250); 
+    //delay(800);
+
+    //rightServo.write(IRbasespeedright - 250); //90 degrees left
+    //leftServo.write(IRbasespeedleft - 250); 
+    //delay(800);
+    
+    //Wall sensor code
+    if(center.getDistanceFloat() <= 10) //stops at value 10
+    {
+        rightServo.write(IRbasespeedright);//stop
+        leftServo.write(IRbasespeedleft);
+        delay(100);
+        if(left.getDistanceFloat() < right.getDistanceFloat())
+        {
+            rightServo.write(IRbasespeedright + 300);//turn right
+            leftServo.write(IRbasespeedleft + 300);
+            delay(800);
+        }else
+        if(left.getDistanceFloat() > right.getDistanceFloat())
+        {
+            rightServo.write(IRbasespeedright - 300);//turn left
+            leftServo.write(IRbasespeedleft - 300);
+            delay(800);
+        }
+    rightServo.write(IRbasespeedright - 300);//go straight
+    leftServo.write(IRbasespeedleft + 300);
+    }
+}
+
 }
