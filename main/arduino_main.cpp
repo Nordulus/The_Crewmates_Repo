@@ -24,6 +24,7 @@ limitations under the License.
 #include <ESP32Servo.h>
 #include <ESP32SharpIR.h>
 #include <QTRSensors.h>
+#include <ESP32SharpIR.h>
 
 #define LED 2
 #define servoPin1 12
@@ -59,7 +60,9 @@ GamepadPtr myGamepads[BP32_MAX_GAMEPADS];
 
 Servo servo1;
 Servo servo2;
-ESP32SharpIR sensor1( ESP32SharpIR::GP2Y0A21YK0F, 27);
+ESP32SharpIR left(ESP32SharpIR::GP2Y0A21YK0F, 2);
+ESP32SharpIR center(ESP32SharpIR::GP2Y0A21YK0F, 15);
+ESP32SharpIR right(ESP32SharpIR::GP2Y0A21YK0F, 0);
 QTRSensors qtr;
 const uint8_t SensorCount = 8;
 uint16_t sensorValues[SensorCount];
@@ -180,10 +183,37 @@ void blinkLED(){
     delay(50);
 }
 
+void wallfollower(){
+    //Wall sensor code
+    if(center.getDistanceFloat() <= 10.50) //stops at value 10.50
+    {
+        Serial.println("stop");
+       /* if(left.getDistanceFloat() <= right.getDistanceFloat())
+        {
+            Serial.println("turn right");
+            while(doneturning)
+            {
+
+            }
+        }else if(right.getDistanceFloat() <= left.getDistanceFloat())
+        {
+            Serial.println("turn left");
+            while(doneturning)
+            {
+
+            }
+        }*/
+    }else{
+    Serial.println("Go straight");
+    }
+
+}
+
 // Arduino setup function. Runs in CPU 1
 void setup() {
-    delay(500);
-    Serial.begin(115200);
+    
+    //delay(500);
+   Serial.begin(115200);
     Serial.print("Serial monitor check");
     // Console.printf("Firmware: %s\n", BP32.firmwareVersion());
 
@@ -195,10 +225,10 @@ void setup() {
     // Calling "forgetBluetoothKeys" in setup() just as an example.
     // Forgetting Bluetooth keys prevents "paired" gamepads to reconnect.
     // But might also fix some connection / re-connection issues.
-    BP32.forgetBluetoothKeys();
+    //BP32.forgetBluetoothKeys();
 
     // motor setup
-        // turn on all allocation timers
+        // turn on all allocation timers     
     ESP32PWM::allocateTimer(0);
 	ESP32PWM::allocateTimer(1);
 	ESP32PWM::allocateTimer(2);
@@ -208,7 +238,7 @@ void setup() {
     servo1.write(90);
     servo2.setPeriodHertz(50);
     servo2.attach(servoPin2, 1000, 2000);
-    servo2.write(90);
+    servo2.write(90); 
     //servos are stationary
     
 
@@ -226,10 +256,18 @@ void setup() {
     //     delay(20);
     // }
     // qtr.calibrate();
+
+    //IR sensor setup
+    //left.setFilterRate(0.1f);
+    center.setFilterRate(0.1f);
+    //right.setFilterRate(0.1f);
+
+
 }
 
 // ESP32 loop function. Runs in CPU 1
 void loop() {
+    
     // This call fetches all the gamepad info from the NINA (ESP32) module.
     // Just call this function in your main loop.
     // The gamepads pointer (the ones received in the callbacks) gets updated
@@ -265,7 +303,7 @@ void loop() {
             // You can query the axis and other properties as well. See Gamepad.h
             // For all the available functions.
         }
-    }
+    }   
 
     // Serial.println(sensor1.getDistanceFloat());
 
@@ -283,7 +321,8 @@ void loop() {
     // if(error == 0){
     //     Serial.println("Straight Ahead");  
     // }
+    wallfollower(); //wallfollower 
     vTaskDelay(1);
-    // delay(100);
+    // delay(100);    
 }
 
