@@ -8,6 +8,13 @@ if(DEFINED ENV{BLUEPAD32_ARDUINO})
     list(APPEND requires "bluepad32_arduino" "arduino")
 endif()
 
-idf_component_register(SRCS "motor_controller.cpp" "QTR_Controller.cpp" "${srcs}"
+#commented it out so it works with vscode
+# idf_component_register(SRCS "PIDACTUALLYWORKS.cpp" "PID3.cpp" "motor_controller.cpp" "QTR_Controller.cpp" "${srcs}"
+#                    INCLUDE_DIRS "."
+#                    REQUIRES "${requires}")
+#) 
+
+idf_component_register(SRCS "${srcs}"
                     INCLUDE_DIRS "."
                     REQUIRES "${requires}")
+

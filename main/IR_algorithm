@@ -1,0 +1,52 @@
+#include <ESP32SharpIR.h>
+#include <ESP32Servo.h>
+
+#define servoPin1 12
+#define servoPin2 13
+
+ESP32SharpIR left(ESP32SharpIR::GP2Y0A21YK0F, 2);
+ESP32SharpIR center(ESP32SharpIR::GP2Y0A21YK0F, 15);
+ESP32SharpIR right(ESP32SharpIR::GP2Y0A21YK0F, 0);
+Servo servo1; //180 = forward
+Servo servo2; //0 = backward
+const double doneturning = 1;
+
+void setup(){
+    delay(500);
+    left.setFilterRate(0.1f);
+    center.setFilterRate(0.1f);
+    right.setFilterRate(0.1f);
+}
+
+void loop(){
+     if(center.getDistanceFloat() <= 10.50) //stops at value 10.50
+    {
+        Serial.println("stop");
+        while(servo1.read() !=90 || servo2.read() != 90)
+        {
+            servo1.write(90);
+            servo2.write(90);
+            delay(100);
+        }
+        if(left.getDistanceFloat() <= right.getDistanceFloat())
+        {
+            Serial.println("turn right");
+            servo1.write(0)
+            servo2.write(180)
+
+            delay(doneturning);
+        }else if(right.getDistanceFloat() <= left.getDistanceFloat())
+        {
+            Serial.println("turn left");
+            servo1.write(180)
+            servo2.write(0)
+            delay(doneturning);
+        }
+    }else{
+    Serial.println("Go straight");
+    servo1.write(145);
+    servo2.write(45);
+    }
+
+    vTaskDelay(1);
+}
