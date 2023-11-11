@@ -14,8 +14,8 @@ int D;
 int baseSpeedA = 1750;
 int baseSpeedB = 1190;
 
-float Kp = 0.05;
-float Ki = 0.00001;
+float Kp = 0.047;
+float Ki = 0.000015;
 float Kd = 0.8;
 
 int lastError = 0;
@@ -83,7 +83,7 @@ void PID_control() {
   from around 500-2500, so anything past that likely will not have 
   any visible changes" 
   change baseSpeed to reflect this in a test at some point*/
-  int motorSpeedA = baseSpeedA - motorSpeedChange;
+  int motorSpeedA = baseSpeedA + motorSpeedChange;
   int motorSpeedB = baseSpeedB + motorSpeedChange;
 
   if (motorSpeedA > 2000) {
@@ -108,6 +108,7 @@ void PID_control() {
   rightServo.write(motorSpeedB);
   Serial.printf("Right: %u ", motorSpeedB);
   Serial.print("");
+  Serial.printf("Error: %u", error);
   Serial.println();
 }
 
