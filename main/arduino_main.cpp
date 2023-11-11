@@ -25,6 +25,9 @@ limitations under the License.
 #include <ESP32SharpIR.h>
 #include <QTRSensors.h>
 #include <ESP32SharpIR.h>
+#include <Wire.h>
+#include <Arduino_APDS9960.h>
+#include <bits/stdc++.h>
 
 #define LED 2
 #define servoPin1 12
@@ -39,6 +42,12 @@ limitations under the License.
 #define QTRSENSOR6 33
 #define QTRSENSOR7 25
 #define QTRSENSOR8 26
+#define APDS9960_INT 2
+#define I2C_SDA 21
+#define I2C_SCL 22
+#define I2C_FREQ 100000
+TwoWire I2C_0 = TwoWire(0);
+APDS9960 apds = APDS9960(I2C_0, APDS9960_INT);
 int pos1 = 0;
 int pos2 = 0;
 
@@ -209,6 +218,33 @@ void wallfollower(){
 
 }
 
+void colorSetup() {
+    I2C_0.begin(I2C_SDA, I2C_SCL, I2C_FREQ);
+    apds.setInterruptPin(APDS9960_INT);
+    apds.begin();
+    Serial.begin(115200);
+    colorLoop();
+}
+
+void colorLoop() {
+    int r, g, b, a;
+    while (!apds.colorAvailable())
+    {
+        delay(5);
+    }
+
+    apds.readColor(r, g, b, a);
+
+    Serial.print("R: ");
+    Serial.println(r);
+    Serial.print("G: ");
+    Serial.println(g);
+    Serial.print("B: ");
+    Serial.println(b);
+    Serial.print("Ambient");
+    Serial.println(a);
+}
+
 // Arduino setup function. Runs in CPU 1
 void setup() {
     
@@ -322,6 +358,7 @@ void loop() {
     //     Serial.println("Straight Ahead");  
     // }
     wallfollower(); //wallfollower 
+    colorSetup(); //Color Sensor
     vTaskDelay(1);
     // delay(100);    
 }
