@@ -75,25 +75,44 @@ void loop() {
 
       if (myGamepad && myGamepad->isConnected()) {
         if (myGamepad->a()) {
-          buttonA = 1;
+          dpadUp = 0;
           buttonB = 0;
+          buttonA = 1;
           buttonX = 0;
+          buttonY = 0;
+          dpadDown = 0;
+          dpadRight = 0;
+          dpadLeft = 0;
         }
         if (myGamepad->b()) {
-          buttonA = 0;
+          dpadUp = 0;
           buttonB = 1;
+          buttonA = 0;
           buttonX = 0;
+          buttonY = 0;
+          dpadDown = 0;
+          dpadRight = 0;
+          dpadLeft = 0;
         }
         if (myGamepad->y()) {
-          buttonA = 0;
+          dpadUp = 0;
           buttonB = 0;
+          buttonA = 0;
           buttonX = 1;
+          buttonY = 0;
+          dpadDown = 0;
+          dpadRight = 0;
+          dpadLeft = 0;
         }
         if (myGamepad->x()) {
-          buttonA = 0;
+          dpadUp = 0;
           buttonB = 0;
+          buttonA = 0;
           buttonX = 0;
           buttonY = 1;
+          dpadDown = 0;
+          dpadRight = 0;
+          dpadLeft = 0;
         }
         if ((myGamepad->dpad()) == 1){
           dpadUp = 1;
@@ -123,16 +142,30 @@ void loop() {
           delay(1600);
           launcher.write(1500);
           dpadUp = 0;
+          buttonB = 0;
+          buttonA = 0;
+          buttonX = 0;
+          buttonY = 0;
+          dpadDown = 0;
+          dpadRight = 0;
+          dpadLeft = 0;
         }
         if (dpadDown == 1){
           launcher.write(1250);
           delay(1600);
           launcher.write(1500);
+          dpadUp = 0;
+          buttonB = 0;
+          buttonA = 0;
+          buttonX = 0;
+          buttonY = 0;
           dpadDown = 0;
+          dpadRight = 0;
+          dpadLeft = 0;
         }
 
         if (buttonY == 1){
-          Serial.print(myGamepad->dpad());
+          printQTR();
           Serial.println();
         }
 
