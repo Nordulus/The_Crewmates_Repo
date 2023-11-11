@@ -11,7 +11,8 @@ int P;
 int I;
 int D;
 
-int baseSpeed = 1500;
+int baseSpeedA = 1750;
+int baseSpeedB = 1190;
 
 float Kp = 0.05;
 float Ki = 0.00001;
@@ -60,8 +61,9 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  PID_control();
   printQTR();
+  PID_control();
+  
 }
 
 void PID_control() {
@@ -81,8 +83,8 @@ void PID_control() {
   from around 500-2500, so anything past that likely will not have 
   any visible changes" 
   change baseSpeed to reflect this in a test at some point*/
-  int motorSpeedA = baseSpeed + motorSpeedChange;
-  int motorSpeedB = baseSpeed + motorSpeedChange;
+  int motorSpeedA = baseSpeedA - motorSpeedChange;
+  int motorSpeedB = baseSpeedB + motorSpeedChange;
 
   if (motorSpeedA > 2000) {
     motorSpeedA = 2000;
@@ -101,7 +103,12 @@ void PID_control() {
     motorSpeedB = 2000;
   }
   leftServo.write(motorSpeedA);
+  Serial.printf("Left: %u ", motorSpeedA);
+  Serial.print("");
   rightServo.write(motorSpeedB);
+  Serial.printf("Right: %u ", motorSpeedB);
+  Serial.print("");
+  Serial.println();
 }
 
 void printQTR(){
@@ -112,6 +119,5 @@ void printQTR(){
     Serial.print('\t');
   }
   Serial.print(position);
-  Serial.println();
   delay(10);
 }
