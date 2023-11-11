@@ -222,7 +222,6 @@ void loop() {
         }
         if (buttonB == 1){
           calibrateQTR();
-          Serial.print("printQTR for now");
           Serial.println();
           buttonB = 0;
         }
