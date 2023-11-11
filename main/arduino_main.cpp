@@ -58,8 +58,8 @@ int pos2 = 0;
 
 GamepadPtr myGamepads[BP32_MAX_GAMEPADS];
 
-Servo servo1;
-Servo servo2;
+Servo rightServo;
+Servo leftServo;
 ESP32SharpIR left(ESP32SharpIR::GP2Y0A21YK0F, 2);
 ESP32SharpIR center(ESP32SharpIR::GP2Y0A21YK0F, 15);
 ESP32SharpIR right(ESP32SharpIR::GP2Y0A21YK0F, 0);
@@ -104,27 +104,6 @@ void onDisconnectedGamepad(GamepadPtr gp) {
     if (!foundGamepad) {
         // Console.println("CALLBACK: Gamepad disconnected, but not found in myGamepads");
     }
-}
-
-void forward(int time = 1000, int lr = 3){
-    // servo runs at full speed for set time param
-    if (lr == 1){
-        servo1.write(180);
-        delay(time);
-    }
-
-    if (lr == 2){
-        servo2.write(180);
-        delay(time);
-    }
-
-    if (lr == 3){
-        servo1.write(180);
-        servo2.write(180);
-        delay(time);
-    }
-
-
 }
 
 void calibrateQTR(){
@@ -184,29 +163,50 @@ void blinkLED(){
 }
 
 void wallfollower(){
+    rightServo.write(1500);//right moter 1000-1500 is forward
+    leftServo.write(1440);//left with lag 1440-1940 is forward
+    delay(3000);
+
+    //rightServo.write(1750); //90 degrees right
+    //leftServo.write(1690); 
+    //delay(800);
+
+    rightServo.write(1250); //90 degrees left
+    leftServo.write(1190); 
+    delay(800);
+    
     //Wall sensor code
-    if(center.getDistanceFloat() <= 10.50) //stops at value 10.50
+    /*if(center.getDistanceFloat() <= 10.50) //stops at value 10.50
     {
         Serial.println("stop");
-       /* if(left.getDistanceFloat() <= right.getDistanceFloat())
+        rightServo.write(1500);
+        leftServo.write(1440);
+        delay(500);
+
+        if(left.getDistanceFloat() <= right.getDistanceFloat())
         {
             Serial.println("turn right");
-            while(doneturning)
-            {
-
-            }
+            rightServo.write(1750);
+            leftServo.write(1690);
+            delay(1000);
+            
         }else if(right.getDistanceFloat() <= left.getDistanceFloat())
         {
             Serial.println("turn left");
-            while(doneturning)
-            {
-
-            }
-        }*/
+            rightServo.write(1250);
+            leftServo.write(1190);
+            delay(1000);
+        }
+        //inch forward
+        rightServo.write(1750);
+        leftServo.write(1190);
+        delay(1000);
     }else{
     Serial.println("Go straight");
+    rightServo.write(1750);
+    leftServo.write(1190);
     }
-
+ */
 }
 
 // Arduino setup function. Runs in CPU 1
@@ -233,19 +233,19 @@ void setup() {
 	ESP32PWM::allocateTimer(1);
 	ESP32PWM::allocateTimer(2);
 	ESP32PWM::allocateTimer(3);
-    servo1.setPeriodHertz(50);
-    servo1.attach(servoPin1, 1000, 2000);
-    servo1.write(90);
-    servo2.setPeriodHertz(50);
-    servo2.attach(servoPin2, 1000, 2000);
-    servo2.write(90); 
+    rightServo.setPeriodHertz(50);
+    rightServo.attach(servoPin1, 1000, 2000);
+    rightServo.write(90);
+    leftServo.setPeriodHertz(50);
+    leftServo.attach(servoPin2, 1000, 2000);
+    leftServo.write(90); 
     //servos are stationary
     
 
     // QTR SENSOR
-    qtr.setTypeAnalog();
-    qtr.setSensorPins((const uint8_t[]){QTRSENSOR1, QTRSENSOR2, QTRSENSOR3, QTRSENSOR4, QTRSENSOR5, QTRSENSOR6, QTRSENSOR7, QTRSENSOR8}, SensorCount);
-    calibrateQTR();
+    //qtr.setTypeAnalog();
+    //qtr.setSensorPins((const uint8_t[]){QTRSENSOR1, QTRSENSOR2, QTRSENSOR3, QTRSENSOR4, QTRSENSOR5, QTRSENSOR6, QTRSENSOR7, QTRSENSOR8}, SensorCount);
+    //calibrateQTR();
 
     // qtr.setTypeRC(); // or setTypeAnalog()
     // qtr.setSensorPins((const uint8_t[]) {12,13,14}, 3);
@@ -267,21 +267,21 @@ void setup() {
 
 // ESP32 loop function. Runs in CPU 1
 void loop() {
-    
+    //Serial.println("not read");
     // This call fetches all the gamepad info from the NINA (ESP32) module.
     // Just call this function in your main loop.
     // The gamepads pointer (the ones received in the callbacks) gets updated
     // automatically.
-    BP32.update();
+    //BP32.update();
     // It is safe to always do this before using the gamepad API.
     // This guarantees that the gamepad is valid and connected.
-    for (int i = 0; i < BP32_MAX_GAMEPADS; i++) {
+    /* for (int i = 0; i < BP32_MAX_GAMEPADS; i++) {
         GamepadPtr myGamepad = myGamepads[i];
 
         if (myGamepad && myGamepad->isConnected()) {
 
-            servo1.write( ((((float) myGamepad->axisY()) / 512.0f) * 500) + 1500 );
-            servo2.write( ((((float) myGamepad->axisY()) / 512.0f) * 500) + 1500 );
+            rightServo.write( ((((float) myGamepad->axisY()) / 512.0f) * 500) + 1500 );
+            leftServo.write( ((((float) myGamepad->axisY()) / 512.0f) * 500) + 1500 );
             // Another way to query the buttons, is by calling buttons(), or
             // miscButtons() which return a bitmask.
             // Some gamepads also have DPAD, axis and more.
@@ -303,7 +303,7 @@ void loop() {
             // You can query the axis and other properties as well. See Gamepad.h
             // For all the available functions.
         }
-    }   
+    }  */ 
 
     // Serial.println(sensor1.getDistanceFloat());
 
@@ -321,7 +321,7 @@ void loop() {
     // if(error == 0){
     //     Serial.println("Straight Ahead");  
     // }
-    wallfollower(); //wallfollower 
+    wallfollower();  
     vTaskDelay(1);
     // delay(100);    
 }
